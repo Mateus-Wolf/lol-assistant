@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #010a13;
+    --hextech-navy: #091428;
+    --hextech-dark-navy: #0a1428;
+    --hextech-slate: #101e38;
+    --hextech-gold: #c8aa6e;
+    --hextech-gold-bright: #f0e6d2;
+    --hextech-gold-dark: #785a28;
+    --hextech-gold-deep: #463714;
+    --hextech-cyan: #0bc6e3;
+    --hextech-cyan-dark: #005a82;
+    --hextech-abyssal: #051923;
+    --noxus-red: #e84057;
+    --noxus-red-dark: #5c1d24;
+    --demacia-blue: #00cfbc;
+    --demacia-blue-dark: #063747;
+    --text-main: #cdbe91;
+    --text-bright: #f0e6d2;
+    --text-dim: #a09b8c;
+    --text-muted: #5b5a56;
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #010a13;
+  background-image: 
+    radial-gradient(ellipse 1000px 600px at 10% -5%, rgba(11, 198, 227, 0.1), transparent 70%),
+    radial-gradient(ellipse 1000px 600px at 90% -5%, rgba(232, 64, 87, 0.08), transparent 70%),
+    radial-gradient(circle 800px at 50% 100%, rgba(200, 170, 110, 0.05), transparent 70%),
+    linear-gradient(180deg, #010a13 0%, #091428 50%, #010a13 100%);
+  color: #cdbe91;
+  min-height: 100vh;
+}
+
+.font-rajdhani {
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Metallic Border & Glass Panel Styling */
+.hextech-panel {
+  background: rgba(9, 20, 40, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(200, 170, 110, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 90, 130, 0.15);
+}
+
+.hextech-panel-subtle {
+  background: rgba(10, 20, 40, 0.6);
+  border: 1px solid rgba(200, 170, 110, 0.15);
+}
+
+.hextech-border-gold {
+  border-color: rgba(200, 170, 110, 0.35);
+}
+
+.hextech-gold-gradient {
+  background: linear-gradient(180deg, #f0e6d2 0%, #c8aa6e 40%, #785a28 100%);
+}
+
+.hextech-button-gold {
+  background: linear-gradient(180deg, #1e282d 0%, #1e2328 100%);
+  border: 1px solid #c8aa6e;
+  color: #f0e6d2;
+  box-shadow: 0 0 10px rgba(200, 170, 110, 0.15), inset 0 0 10px rgba(200, 170, 110, 0.1);
+  transition: all 0.15s ease-in-out;
+}
+
+.hextech-button-gold:hover:not(:disabled) {
+  background: linear-gradient(180deg, #c8aa6e 0%, #785a28 100%);
+  color: #010a13;
+  box-shadow: 0 0 18px rgba(200, 170, 110, 0.4), inset 0 0 12px rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* LoL Client Lock In Button */
+.lol-lockin-btn {
+  background: linear-gradient(180deg, #f0e6d2 0%, #c8aa6e 35%, #a07b32 75%, #463714 100%);
+  border: 1px solid #f0e6d2;
+  color: #010a13;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 0 0 1px rgba(1, 10, 19, 0.8),
+    0 0 15px rgba(200, 170, 110, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: all 0.15s ease-in-out;
+}
+
+.lol-lockin-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff 0%, #f0e6d2 30%, #c8aa6e 70%, #785a28 100%);
+  box-shadow: 
+    0 0 0 1px rgba(1, 10, 19, 0.8),
+    0 0 25px rgba(200, 170, 110, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.lol-lockin-btn:disabled {
+  background: linear-gradient(180deg, #1e2328 0%, #101e38 100%);
+  border-color: rgba(200, 170, 110, 0.2);
+  color: #5b5a56;
+  text-shadow: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Keyframe Animations for Filtering, Assigning, Removing */
+@keyframes champPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slotAssign {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.82);
+    box-shadow: 0 0 25px rgba(11, 198, 227, 0.8);
+  }
+  60% {
+    transform: scale(1.08);
+    box-shadow: 0 0 15px rgba(200, 170, 110, 0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 transparent;
+  }
+}
+
+@keyframes slotClear {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes filterChipPop {
+  0% {
+    transform: scale(0.92);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-champ-pop {
+  animation: champPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slot-assign {
+  animation: slotAssign 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slot-clear {
+  animation: slotClear 0.25s ease-out forwards;
+}
+
+.animate-chip-pop {
+  animation: filterChipPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(1, 10, 19, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: #785a28;
+  border-radius: 2px;
+  border: 1px solid rgba(200, 170, 110, 0.3);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c8aa6e;
+  box-shadow: 0 0 8px rgba(200, 170, 110, 0.5);
+}

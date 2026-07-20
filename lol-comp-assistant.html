@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assistente de Composição — Dossiê de Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0e14;
+    --panel: #121826;
+    --panel-2: #19202f;
+    --line: #262e42;
+    --gold: #c8aa6e;
+    --gold-bright: #f0e6d2;
+    --blue: #17c9c0;
+    --blue-dim: #0d5f5c;
+    --red: #e8555a;
+    --red-dim: #6e2a2d;
+    --text: #cbd3de;
+    --text-dim: #6d778c;
+    --mock: #e0a94e;
+    --real: #7fd88f;
+    --radius: 6px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(23,201,192,0.07), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 85% -10%, rgba(232,85,90,0.07), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+  }
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* ---------- header ---------- */
+  .top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:26px; flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:16px;}
+  .eyebrow{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.18em; color:var(--gold); text-transform:uppercase; margin:0 0 4px; }
+  h1{ font-family:'Rajdhani', sans-serif; font-weight:700; font-size:32px; letter-spacing:.02em; margin:0; color:var(--gold-bright); text-transform:uppercase;}
+  
+  .header-actions{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .patch-tag{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-dim); border:1px solid var(--line); border-radius:4px; padding:6px 10px; display:flex; align-items:center; gap:8px; background:var(--panel); }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--real); box-shadow:0 0 6px var(--real); }
+  .dot.off{ background:var(--text-dim); box-shadow:none; }
+
+  /* ---------- view switcher ---------- */
+  .view-switch{ display:flex; align-items:center; gap:3px; background:var(--panel); border:1px solid var(--line); padding:3px; border-radius:6px; }
+  .view-btn{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-dim); background:transparent; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s ease; }
+  .view-btn:hover{ color:var(--gold-bright); }
+  .view-btn.active{ color:var(--gold-bright); background:var(--panel-2); border:1px solid var(--line); box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+
+  /* ---------- draft board ---------- */
+  #draftView.layout-default{ display:block; }
+  #draftView.layout-default .board{ display:grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+  
+  #draftView.layout-split{ display:grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  #draftView.layout-split .board{ display:grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 0; }
+  #draftView.layout-split .picker{ display:flex; flex-direction:column; height: 100%; }
+  #draftView.layout-split .grid{ max-height: 480px; flex: 1; }
+  #draftView.layout-split .cta-row{ grid-column: 1 / -1; margin-top: 10px; }
+
+  @media (max-width: 900px){ 
+    .board{ grid-template-columns: 1fr !important; }
+    #draftView.layout-split{ grid-template-columns: 1fr; }
+  }
+
+  .side{ border:1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow:hidden; }
+  .side-head{ font-family:'Rajdhani', sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; }
+  .side.blue .side-head{ color:var(--blue); background: linear-gradient(90deg, rgba(23,201,192,0.14), transparent); border-bottom:1px solid var(--blue-dim); }
+  .side.red .side-head{ color:var(--red); background: linear-gradient(90deg, rgba(232,85,90,0.14), transparent); border-bottom:1px solid var(--red-dim); }
+
+  .slot{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line); cursor:pointer; transition:background .12s ease; position:relative; }
+  .slot:last-child{ border-bottom:none; }
+  .slot:hover{ background: var(--panel-2); }
+  .slot.active{ background: var(--panel-2); box-shadow: inset 3px 0 0 var(--gold); }
+  .role-tag{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); width:54px; flex-shrink:0; letter-spacing:.06em; }
+  .champ-icon{ width:34px; height:34px; border-radius:4px; object-fit:cover; background:var(--panel-2); border:1px solid var(--line); flex-shrink:0; }
+  .champ-icon.empty{ display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:16px; }
+  .slot-name{ font-size:13.5px; color:var(--text); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .slot-name.empty{ color:var(--text-dim); font-style:italic; }
+  .you-badge{ font-family:'JetBrains Mono', monospace; font-size:9px; letter-spacing:.08em; color:var(--bg); background:var(--gold); padding:2px 6px; border-radius:3px; font-weight:600; flex-shrink:0; }
+  .you-toggle{ font-family:'JetBrains Mono', monospace; font-size:9px; letter-spacing:.05em; color:var(--text-dim); border:1px solid var(--line); border-radius:3px; padding:2px 6px; background:transparent; cursor:pointer; flex-shrink:0; }
+  .you-toggle:hover{ color: var(--gold); border-color: var(--gold); }
+  
+  .slot-remove{ background:transparent; border:none; color:var(--text-dim); font-size:16px; font-weight:bold; cursor:pointer; padding:2px 6px; border-radius:4px; line-height:1; transition:all 0.15s ease; flex-shrink:0; margin-left:2px; }
+  .slot-remove:hover{ color:var(--red); background:rgba(232,85,90,0.18); }
+
+  /* ---------- picker ---------- */
+  .picker{ border:1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding:14px; }
+  .picker-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .picker-title{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.1em; color:var(--text-dim); text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+  .search{ flex:1; min-width:200px; }
+  .search input{ width:100%; background: var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:4px; padding:9px 12px; font-family:'Inter'; font-size:14px; }
+  .search input:focus{ outline:none; border-color:var(--gold); }
+
+  .filter-section{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.15); padding:10px; border-radius:5px; border:1px solid rgba(255,255,255,0.03); }
+  .filter-group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .filter-label{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:0.08em; width:52px; flex-shrink:0; font-weight:600; }
+  .roles{ display:flex; gap:5px; flex-wrap:wrap; flex:1; }
+  .role-chip{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.05em; padding:4px 8px; border-radius:4px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; text-transform:uppercase; transition:all 0.12s ease; }
+  .role-chip:hover{ color:var(--text); border-color:var(--text-dim); }
+  .role-chip.on{ color: var(--gold); border-color: var(--gold); background: rgba(200,170,110,0.12); font-weight:600; }
+
+  .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap:8px; max-height: 320px; overflow-y:auto; padding-right:4px; }
+  .grid::-webkit-scrollbar{ width:6px; } .grid::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
+  .gchamp{ display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; padding:6px 4px; border-radius:5px; border:1px solid transparent; transition:transform 0.1s ease, border-color 0.12s ease; position:relative; }
+  .gchamp:hover:not(.picked){ background:var(--panel-2); border-color:var(--line); transform:translateY(-1px); }
+  .gchamp img{ width:48px; height:48px; border-radius:5px; object-fit:cover; border:1px solid var(--line); }
+  .gchamp span{ font-size:10.5px; text-align:center; color:var(--text-dim); line-height:1.15; }
+
+  .gchamp.picked{ opacity:0.32; filter:grayscale(85%); cursor:not-allowed; }
+  .gchamp.picked::after{ content:"INDISPONÍVEL"; position:absolute; top:20px; left:50%; transform:translateX(-50%); background:rgba(11,14,20,0.9); color:var(--red); font-family:'JetBrains Mono', monospace; font-size:7.5px; font-weight:bold; padding:2px 4px; border-radius:3px; border:1px solid var(--red-dim); pointer-events:none; white-space:nowrap; letter-spacing:0.04em; }
+
+  .empty-hint{ color:var(--text-dim); font-size:12.5px; text-align:center; padding:20px 10px; grid-column:1 / -1; }
+
+  /* ---------- CTA ---------- */
+  .cta-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:20px; flex-wrap:wrap; }
+  .progress{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-dim); }
+  .progress b{ color:var(--gold-bright); }
+  .btn{ font-family:'Rajdhani', sans-serif; font-weight:700; font-size:16px; letter-spacing:.06em; text-transform:uppercase; padding:12px 26px; border-radius:5px; border:none; cursor:pointer; transition: transform .1s ease, box-shadow .15s ease; }
+  .btn-primary{ background: linear-gradient(180deg, #d8ba7e, var(--gold)); color:#1a1406; box-shadow: 0 0 0 1px rgba(200,170,110,0.4), 0 6px 18px rgba(200,170,110,0.15); }
+  .btn-primary:disabled{ background:var(--panel-2); color:var(--text-dim); box-shadow:none; cursor:not-allowed; }
+  .btn-primary:not(:disabled):hover{ transform: translateY(-1px); }
+  .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--text-dim); }
+  .btn-ghost:hover{ color:var(--gold); border-color:var(--gold); }
+  .btn-clear-active{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--red); border:1px solid var(--red-dim); background:rgba(232,85,90,0.08); padding:3px 8px; border-radius:3px; cursor:pointer; }
+  .btn-clear-active:hover{ background:rgba(232,85,90,0.2); }
+
+  /* ---------- report view ---------- */
+  #reportView{ display:none; }
+  .report-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .card{ border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); padding:16px 18px; margin-bottom:14px; }
+  .card h3{ font-family:'Rajdhani', sans-serif; font-size:18px; letter-spacing:.03em; text-transform:uppercase; color:var(--gold-bright); margin:0 0 12px; display:flex; align-items:center; gap:10px; }
+  .tag{ font-family:'JetBrains Mono', monospace; font-size:9.5px; letter-spacing:.04em; padding:3px 7px; border-radius:3px; text-transform:none; }
+  .tag.mock{ color:var(--mock); border:1px solid rgba(224,169,78,0.4); background:rgba(224,169,78,0.08); }
+  .tag.real{ color:var(--real); border:1px solid rgba(127,216,143,0.4); background:rgba(127,216,143,0.08); }
+
+  .lane-row{ display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .lane-row:last-child{ border-bottom:none; }
+  .lane-role{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); width:64px; flex-shrink:0; }
+  .lane-match{ display:flex; align-items:center; gap:8px; width:200px; flex-shrink:0; }
+  .lane-match img{ width:30px; height:30px; border-radius:4px; border:1px solid var(--line); }
+  .vs{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-dim); }
+  .lane-info{ flex:1; min-width:220px; font-size:13px; color:var(--text); }
+  .lane-info .wr{ font-family:'JetBrains Mono', monospace; color:var(--gold-bright); font-weight:600; }
+  .lane-info .sub{ color:var(--text-dim); font-size:12px; display:block; margin-top:2px; }
+
+  .item-list{ display:flex; flex-wrap:wrap; gap:8px; }
+  .item-pill{ font-family:'JetBrains Mono', monospace; font-size:11.5px; background:var(--panel-2); border:1px solid var(--line); border-radius:4px; padding:5px 10px; color:var(--text); }
+
+  .stamp{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); display:flex; align-items:center; gap:6px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+  .stamp .box{ width:8px; height:8px; border:1px solid var(--text-dim); flex-shrink:0; }
+  .stamp.mock .box{ border-color:var(--mock); background:repeating-linear-gradient(45deg, var(--mock), var(--mock) 1px, transparent 1px, transparent 3px); }
+  .stamp.real .box{ border-color:var(--real); background:var(--real); }
+
+  .loading{ text-align:center; padding:60px 20px; color:var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <p class="eyebrow">Scouting Report · Pré-partida</p>
+      <h1>Assistente de Composição</h1>
+    </div>
+    <div class="header-actions">
+      <div class="view-switch">
+        <button class="view-btn active" id="btnModeDefault" title="Modo Padrão (Lados lado a lado)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="18" height="8" rx="1"/></svg>
+          Padrão
+        </button>
+        <button class="view-btn" id="btnModeSplit" title="Picks na Esquerda, Seleção na Direita">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+          Picks na Esquerda
+        </button>
+      </div>
+      <div class="patch-tag"><span class="dot" id="ddragonDot"></span><span id="patchLabel">carregando patch…</span></div>
+    </div>
+  </div>
+
+  <!-- ============ DRAFT VIEW ============ -->
+  <div id="draftView" class="layout-default">
+    <div class="board">
+      <div class="side blue">
+        <div class="side-head"><span>Lado Azul · Aliados</span></div>
+        <div id="blueSlots"></div>
+      </div>
+      <div class="side red">
+        <div class="side-head"><span>Lado Vermelho · Inimigos</span></div>
+        <div id="redSlots"></div>
+      </div>
+    </div>
+
+    <div class="picker">
+      <div class="picker-head">
+        <span class="picker-title">
+          Selecionar campeão 
+          <span id="activeSlotLabel" style="color:var(--gold-bright);font-size:10px;">(Azul · TOPO)</span>
+          <button id="clearActiveSlotBtn" class="btn-clear-active" style="display:none;" title="Limpar este slot">Remover</button>
+        </span>
+        <div class="search"><input id="searchInput" type="text" placeholder="Buscar campeão por nome…" /></div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-group">
+          <span class="filter-label">Lane:</span>
+          <div class="roles" id="laneChips"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Classe:</span>
+          <div class="roles" id="roleChips"></div>
+        </div>
+      </div>
+
+      <div class="grid" id="champGrid"><div class="empty-hint">Carregando lista de campeões do Data Dragon…</div></div>
+    </div>
+
+    <div class="cta-row">
+      <span class="progress"><b id="filledCount">0</b>/10 campeões selecionados</span>
+      <button class="btn btn-primary" id="genBtn" disabled>Gerar leitura tática</button>
+    </div>
+  </div>
+
+  <!-- ============ REPORT VIEW ============ -->
+  <div id="reportView">
+    <div class="report-head">
+      <button class="btn btn-ghost" id="backBtn">← Voltar ao draft</button>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const ROLES = ["TOPO","SELVA","MEIO","ATIRAD.","SUPORTE"];
+
+  // Lane mapping table for popular champions
+  const CHAMPION_LANES = {
+    // Top
+    Aatrox: ["TOPO"], Akali: ["TOPO","MEIO"], Camille: ["TOPO"], Chogath: ["TOPO","MEIO"], Darius: ["TOPO"],
+    DrMundo: ["TOPO","SELVA"], Fiora: ["TOPO"], Gangplank: ["TOPO"], Garen: ["TOPO"], Gnar: ["TOPO"],
+    Gragas: ["TOPO","SELVA","MEIO"], Gwen: ["TOPO"], Heimerdinger: ["TOPO","MEIO","SUPORTE"], Illaoi: ["TOPO"],
+    Irelia: ["TOPO","MEIO"], Jax: ["TOPO","SELVA"], Jayce: ["TOPO","MEIO"], KSante: ["TOPO"], Kayle: ["TOPO","MEIO"],
+    Kennen: ["TOPO"], Kled: ["TOPO"], Malphite: ["TOPO","MEIO"], Mordekaiser: ["TOPO"], Nasus: ["TOPO"],
+    Olaf: ["TOPO","SELVA"], Ornn: ["TOPO"], Pantheon: ["TOPO","MEIO","SUPORTE"], Poppy: ["TOPO","SELVA","SUPORTE"],
+    Renekton: ["TOPO"], Riven: ["TOPO"], Rumble: ["TOPO","MEIO"], Sett: ["TOPO","SUPORTE"], Shen: ["TOPO","SUPORTE"],
+    Singed: ["TOPO"], Sion: ["TOPO"], Smolder: ["ATIRAD.","MEIO","TOPO"], Swain: ["SUPORTE","MEIO","TOPO"],
+    Teemo: ["TOPO"], Trundle: ["TOPO","SELVA"], Tryndamere: ["TOPO"], Urgot: ["TOPO"], Volibear: ["TOPO","SELVA"],
+    Warwick: ["TOPO","SELVA"], Wukong: ["TOPO","SELVA"], Yasuo: ["MEIO","TOPO","ATIRAD."], Yone: ["MEIO","TOPO"], Yorick: ["TOPO"],
+    Zac: ["SELVA","TOPO","SUPORTE"], Ambessa: ["TOPO","SELVA"],
+
+    // Selva
+    Amumu: ["SELVA","SUPORTE"], Belveth: ["SELVA"], Brand: ["SELVA","SUPORTE","MEIO"], Briar: ["SELVA"],
+    Diana: ["SELVA","MEIO"], Ekko: ["SELVA","MEIO"], Elise: ["SELVA"], Evelynn: ["SELVA"], Fiddlesticks: ["SELVA"],
+    Hecarim: ["SELVA"], Ivern: ["SELVA"], JarvanIV: ["SELVA"], Karthus: ["SELVA","ATIRAD."], Kayn: ["SELVA"],
+    Khazix: ["SELVA"], Kindred: ["SELVA"], LeeSin: ["SELVA"], Lillia: ["SELVA"], MasterYi: ["SELVA"],
+    Nidalee: ["SELVA"], Nocturne: ["SELVA"], Nunu: ["SELVA"], Rammus: ["SELVA"], Reksai: ["SELVA"],
+    Rengar: ["SELVA","TOPO"], Sejuani: ["SELVA"], Shaco: ["SELVA","SUPORTE"], Shyvana: ["SELVA"], Skarner: ["SELVA","TOPO"],
+    Taliyah: ["SELVA","MEIO"], Talon: ["SELVA","MEIO"], Udyr: ["SELVA","TOPO"], Vi: ["SELVA"], Viego: ["SELVA"],
+    XinZhao: ["SELVA"],
+
+    // Meio
+    Ahri: ["MEIO"], Akshan: ["MEIO","TOPO"], Anivia: ["MEIO"], Annie: ["MEIO","SUPORTE"], AurelionSol: ["MEIO"],
+    Azir: ["MEIO"], Cassiopeia: ["MEIO"], Corki: ["MEIO","ATIRAD."], Fizz: ["MEIO"], Galio: ["MEIO","SUPORTE"],
+    Hwei: ["MEIO","SUPORTE"], Karma: ["SUPORTE","MEIO"], Kassadin: ["MEIO"], Katarina: ["MEIO"], Leblanc: ["MEIO"],
+    Lissandra: ["MEIO"], Lux: ["SUPORTE","MEIO"], Malzahar: ["MEIO"], Naafiri: ["MEIO"], Neeko: ["MEIO","SUPORTE"],
+    Orianna: ["MEIO"], Qiyana: ["MEIO"], Ryze: ["MEIO","TOPO"], Syndra: ["MEIO"], TwistedFate: ["MEIO","ATIRAD."],
+    Veigar: ["MEIO","ATIRAD."], Velkoz: ["SUPORTE","MEIO"], Viktor: ["MEIO"], Vladimir: ["MEIO","TOPO"],
+    Xerath: ["SUPORTE","MEIO"], Zed: ["MEIO"], Zoe: ["MEIO"], Mel: ["MEIO","SUPORTE"],
+
+    // Atirador
+    Aphelios: ["ATIRAD."], Ashe: ["ATIRAD.","SUPORTE"], Caitlyn: ["ATIRAD."], Draven: ["ATIRAD."], Ezreal: ["ATIRAD."],
+    Jhin: ["ATIRAD."], Jinx: ["ATIRAD."], Kaisa: ["ATIRAD."], Kalista: ["ATIRAD."], KogMaw: ["ATIRAD."],
+    Lucian: ["ATIRAD."], MissFortune: ["ATIRAD."], Nilah: ["ATIRAD."], Samira: ["ATIRAD."], Senna: ["SUPORTE","ATIRAD."],
+    Sivir: ["ATIRAD."], Tristana: ["ATIRAD.","MEIO"], Twitch: ["ATIRAD.","SUPORTE"], Varus: ["ATIRAD.","MEIO"],
+    Vayne: ["ATIRAD.","TOPO"], Xayah: ["ATIRAD."], Zeri: ["ATIRAD."],
+
+    // Suporte
+    Alistar: ["SUPORTE"], Bard: ["SUPORTE"], Blitzcrank: ["SUPORTE"], Braum: ["SUPORTE"], Janna: ["SUPORTE"],
+    Leona: ["SUPORTE"], Lulu: ["SUPORTE"], Milio: ["SUPORTE"], Morgana: ["SUPORTE","MEIO"], Nami: ["SUPORTE"],
+    Nautilus: ["SUPORTE"], Pyke: ["SUPORTE"], Rakan: ["SUPORTE"], Renata: ["SUPORTE"], Seraphine: ["SUPORTE","ATIRAD."],
+    Sona: ["SUPORTE"], Soraka: ["SUPORTE"], Taric: ["SUPORTE"], Thresh: ["SUPORTE"], Yuumi: ["SUPORTE"],
+    Zilean: ["SUPORTE","MEIO"], Zyra: ["SUPORTE","SELVA"]
+  };
+
+  let ddragonOk = false;
+  let version = "";
+  let champions = []; // {id, name, tags}
+  let iconBase = "";
+
+  const state = {
+    blue: new Array(5).fill(null),
+    red: new Array(5).fill(null),
+    youIndex: 0,
+    active: {side:"blue", idx:0},
+    laneFilter: null,
+    roleFilter: null,
+    search: "",
+    layoutMode: "default"
+  };
+
+  // ---- fallback data so the draft board still works if Data Dragon is unreachable ----
+  const FALLBACK_CHAMPS = [
+    {id:"Ahri", name:"Ahri", tags:["Mage","Assassin"]},
+    {id:"Darius", name:"Darius", tags:["Fighter","Tank"]},
+    {id:"LeeSin", name:"Lee Sin", tags:["Fighter","Assassin"]},
+    {id:"Jinx", name:"Jinx", tags:["Marksman"]},
+    {id:"Thresh", name:"Thresh", tags:["Support","Fighter"]},
+    {id:"Garen", name:"Garen", tags:["Fighter","Tank"]},
+    {id:"Yasuo", name:"Yasuo", tags:["Fighter","Assassin"]},
+    {id:"Lux", name:"Lux", tags:["Mage","Support"]},
+    {id:"MissFortune", name:"Miss Fortune", tags:["Marksman"]},
+    {id:"Malphite", name:"Malphite", tags:["Tank","Fighter"]},
+    {id:"Zed", name:"Zed", tags:["Assassin"]},
+    {id:"Leona", name:"Leona", tags:["Tank","Support"]},
+    {id:"Ezreal", name:"Ezreal", tags:["Marksman","Mage"]},
+    {id:"Amumu", name:"Amumu", tags:["Tank","Mage"]},
+    {id:"Katarina", name:"Katarina", tags:["Assassin","Mage"]},
+    {id:"Jax", name:"Jax", tags:["Fighter","Assassin"]},
+    {id:"Nami", name:"Nami", tags:["Support","Mage"]},
+    {id:"Vayne", name:"Vayne", tags:["Marksman","Assassin"]},
+    {id:"Fiora", name:"Fiora", tags:["Fighter","Assassin"]},
+    {id:"Morgana", name:"Morgana", tags:["Mage","Support"]}
+  ];
+
+  async function init(){
+    try{
+      const vRes = await fetch("https://ddragon.leagueoflegends.com/api/versions.json");
+      const versions = await vRes.json();
+      version = versions[0];
+      const cRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/pt_BR/champion.json`);
+      const cData = await cRes.json();
+      champions = Object.values(cData.data).map(c => ({id:c.id, name:c.name, tags:c.tags})).sort((a,b)=>a.name.localeCompare(b.name));
+      iconBase = `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/`;
+      ddragonOk = true;
+      document.getElementById("patchLabel").textContent = `Data Dragon · patch ${version}`;
+      document.getElementById("ddragonDot").classList.remove("off");
+    }catch(e){
+      champions = FALLBACK_CHAMPS;
+      iconBase = null;
+      document.getElementById("patchLabel").textContent = "modo offline · lista reduzida";
+      document.getElementById("ddragonDot").classList.add("off");
+    }
+    buildLaneChips();
+    buildRoleChips();
+    renderSlots();
+    renderGrid();
+    wireEvents();
+  }
+
+  function iconUrl(champId){
+    if(!iconBase) return null;
+    return iconBase + champId + ".png";
+  }
+
+  function getChampLanes(champ){
+    if(CHAMPION_LANES[champ.id]) return CHAMPION_LANES[champ.id];
+    // Fallback based on Data Dragon tags
+    const tags = champ.tags || [];
+    const lanes = [];
+    if(tags.includes("Marksman")) lanes.push("ATIRAD.");
+    if(tags.includes("Support")) lanes.push("SUPORTE");
+    if(tags.includes("Mage") || tags.includes("Assassin")) lanes.push("MEIO");
+    if(tags.includes("Fighter") || tags.includes("Tank")){
+      lanes.push("TOPO");
+      lanes.push("SELVA");
+    }
+    return lanes.length > 0 ? lanes : ["TOPO","SELVA","MEIO","ATIRAD.","SUPORTE"];
+  }
+
+  function buildLaneChips(){
+    const laneOptions = ["TOPO","SELVA","MEIO","ATIRAD.","SUPORTE"];
+    const el = document.getElementById("laneChips");
+    el.innerHTML = "";
+
+    const allChip = document.createElement("button");
+    allChip.className = "role-chip" + (state.laneFilter === null ? " on" : "");
+    allChip.textContent = "TODAS";
+    allChip.onclick = ()=>{ state.laneFilter = null; buildLaneChips(); renderGrid(); };
+    el.appendChild(allChip);
+
+    laneOptions.forEach(lane=>{
+      const chip = document.createElement("button");
+      chip.className = "role-chip" + (state.laneFilter === lane ? " on" : "");
+      chip.textContent = lane;
+      chip.onclick = ()=>{
+        state.laneFilter = state.laneFilter === lane ? null : lane;
+        buildLaneChips();
+        renderGrid();
+      };
+      el.appendChild(chip);
+    });
+  }
+
+  function buildRoleChips(){
+    const tagSet = ["Fighter","Tank","Mage","Assassin","Marksman","Support"];
+    const labels = {Fighter:"Lutador", Tank:"Tanque", Mage:"Mago", Assassin:"Assassino", Marksman:"Atirador", Support:"Suporte"};
+    const el = document.getElementById("roleChips");
+    el.innerHTML = "";
+
+    const allChip = document.createElement("button");
+    allChip.className = "role-chip" + (state.roleFilter === null ? " on" : "");
+    allChip.textContent = "TODAS";
+    allChip.onclick = ()=>{ state.roleFilter = null; buildRoleChips(); renderGrid(); };
+    el.appendChild(allChip);
+
+    tagSet.forEach(tag=>{
+      const chip = document.createElement("button");
+      chip.className = "role-chip" + (state.roleFilter === tag ? " on" : "");
+      chip.textContent = labels[tag];
+      chip.onclick = ()=>{
+        state.roleFilter = state.roleFilter === tag ? null : tag;
+        buildRoleChips();
+        renderGrid();
+      };
+      el.appendChild(chip);
+    });
+  }
+
+  function getPickedChampIds(excludeSide = null, excludeIdx = null){
+    const ids = new Set();
+    for(let i=0; i<5; i++){
+      if(state.blue[i] && !(excludeSide === 'blue' && excludeIdx === i)){
+        ids.add(state.blue[i].id);
+      }
+      if(state.red[i] && !(excludeSide === 'red' && excludeIdx === i)){
+        ids.add(state.red[i].id);
+      }
+    }
+    return ids;
+  }
+
+  function renderSlots(){
+    renderSide("blue", document.getElementById("blueSlots"));
+    renderSide("red", document.getElementById("redSlots"));
+    
+    const activeChamp = state[state.active.side][state.active.idx];
+    const sideName = state.active.side === "blue" ? "Azul" : "Vermelho";
+    const roleName = ROLES[state.active.idx];
+    const activeLabel = document.getElementById("activeSlotLabel");
+    activeLabel.textContent = `(${sideName} · ${roleName})`;
+
+    const clearBtn = document.getElementById("clearActiveSlotBtn");
+    if(activeChamp){
+      clearBtn.style.display = "inline-block";
+      clearBtn.textContent = `Remover ${activeChamp.name}`;
+      clearBtn.onclick = () => removeChampion(state.active.side, state.active.idx);
+    } else {
+      clearBtn.style.display = "none";
+    }
+
+    const filled = state.blue.filter(Boolean).length + state.red.filter(Boolean).length;
+    document.getElementById("filledCount").textContent = filled;
+    document.getElementById("genBtn").disabled = filled < 10;
+  }
+
+  function renderSide(side, container){
+    container.innerHTML = "";
+    for(let i=0;i<5;i++){
+      const champ = state[side][i];
+      const row = document.createElement("div");
+      row.className = "slot" + (state.active.side===side && state.active.idx===i ? " active" : "");
+      row.onclick = ()=>{ state.active = {side, idx:i}; renderSlots(); renderGrid(); };
+
+      const roleTag = document.createElement("div");
+      roleTag.className = "role-tag";
+      roleTag.textContent = ROLES[i];
+      row.appendChild(roleTag);
+
+      const icon = document.createElement(champ ? "img" : "div");
+      icon.className = "champ-icon" + (champ ? "" : " empty");
+      if(champ){
+        const url = iconUrl(champ.id);
+        if(url) icon.src = url;
+      } else {
+        icon.textContent = "+";
+      }
+      row.appendChild(icon);
+
+      const name = document.createElement("div");
+      name.className = "slot-name" + (champ ? "" : " empty");
+      name.textContent = champ ? champ.name : "vazio";
+      row.appendChild(name);
+
+      if(side==="blue"){
+        if(state.youIndex === i){
+          const badge = document.createElement("span");
+          badge.className = "you-badge";
+          badge.textContent = "VOCÊ";
+          row.appendChild(badge);
+        } else {
+          const toggle = document.createElement("button");
+          toggle.className = "you-toggle";
+          toggle.textContent = "marcar como você";
+          toggle.onclick = (e)=>{ e.stopPropagation(); state.youIndex = i; renderSlots(); };
+          row.appendChild(toggle);
+        }
+      }
+
+      if(champ){
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "slot-remove";
+        removeBtn.textContent = "×";
+        removeBtn.title = "Excluir campeão do slot";
+        removeBtn.onclick = (e)=>{
+          e.stopPropagation();
+          removeChampion(side, i);
+        };
+        row.appendChild(removeBtn);
+      }
+
+      container.appendChild(row);
+    }
+  }
+
+  function removeChampion(side, idx){
+    state[side][idx] = null;
+    renderSlots();
+    renderGrid();
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById("champGrid");
+    const q = state.search.trim().toLowerCase();
+    const pickedSet = getPickedChampIds(state.active.side, state.active.idx);
+
+    const list = champions.filter(c=>{
+      const matchesSearch = !q || c.name.toLowerCase().includes(q);
+      const matchesRole = !state.roleFilter || (c.tags||[]).includes(state.roleFilter);
+      const matchesLane = !state.laneFilter || getChampLanes(c).includes(state.laneFilter);
+      return matchesSearch && matchesRole && matchesLane;
+    });
+
+    grid.innerHTML = "";
+    if(list.length===0){
+      grid.innerHTML = '<div class="empty-hint">Nenhum campeão encontrado para esses filtros.</div>';
+      return;
+    }
+
+    list.forEach(c=>{
+      const el = document.createElement("div");
+      const isPicked = pickedSet.has(c.id);
+      el.className = "gchamp" + (isPicked ? " picked" : "");
+      
+      const url = iconUrl(c.id);
+      el.innerHTML = url
+        ? `<img src="${url}" alt="${c.name}"><span>${c.name}</span>`
+        : `<div class="champ-icon empty" style="width:48px;height:48px;font-size:20px;">?</div><span>${c.name}</span>`;
+      
+      if(isPicked){
+        el.title = `${c.name} já foi selecionado em outro slot`;
+      } else {
+        el.onclick = ()=> assignChampion(c);
+      }
+      
+      grid.appendChild(el);
+    });
+  }
+
+  function assignChampion(champ){
+    const {side, idx} = state.active;
+    
+    // Prevent duplicate picks across teams
+    const pickedSet = getPickedChampIds(side, idx);
+    if(pickedSet.has(champ.id)) return;
+
+    state[side][idx] = champ;
+    
+    // auto-advance to the next empty slot on the same side, or the other side
+    const nextSameSide = state[side].findIndex((c,i)=> i>idx && !c);
+    if(nextSameSide !== -1){
+      state.active = {side, idx: nextSameSide};
+    } else {
+      const otherSide = side==="blue" ? "red" : "blue";
+      const nextOther = state[otherSide].findIndex(c=>!c);
+      if(nextOther !== -1) state.active = {side: otherSide, idx: nextOther};
+    }
+    renderSlots();
+    renderGrid();
+  }
+
+  function setViewMode(mode){
+    state.layoutMode = mode;
+    const draftView = document.getElementById("draftView");
+    const btnDefault = document.getElementById("btnModeDefault");
+    const btnSplit = document.getElementById("btnModeSplit");
+
+    if(mode === "split"){
+      draftView.className = "layout-split";
+      btnSplit.classList.add("active");
+      btnDefault.classList.remove("active");
+    } else {
+      draftView.className = "layout-default";
+      btnDefault.classList.add("active");
+      btnSplit.classList.remove("active");
+    }
+  }
+
+  function wireEvents(){
+    document.getElementById("searchInput").addEventListener("input", e=>{
+      state.search = e.target.value;
+      renderGrid();
+    });
+    
+    document.getElementById("btnModeDefault").addEventListener("click", ()=> setViewMode("default"));
+    document.getElementById("btnModeSplit").addEventListener("click", ()=> setViewMode("split"));
+
+    document.getElementById("genBtn").addEventListener("click", generateReport);
+    document.getElementById("backBtn").addEventListener("click", ()=>{
+      document.getElementById("reportView").style.display = "none";
+      document.getElementById("draftView").style.display = state.layoutMode === "split" ? "grid" : "block";
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Mock tactical report.
+  // In production this entire block is replaced by a call to your
+  // backend, which in turn queries the OP.GG MCP server.
+  // ---------------------------------------------------------------
+  function hash(str){
+    let h = 0;
+    for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i))|0; }
+    return Math.abs(h);
+  }
+
+  function mockWinrate(a,b){
+    const h = hash(a.id + "|" + b.id);
+    return 42 + (h % 17); // 42–58%, deterministic per matchup
+  }
+
+  const ITEM_POOL = ["Guardião de Ferro","Lâmina do Rei Arruinado","Capa Nulificante","Espada da Fúria Infinita","Manopla do Verdugo","Coração de Guardião","Nocturno's Edge","Fluxo do Éter","Trindade","Cutelo Preto"];
+  function mockItems(champ){
+    const h = hash(champ.id);
+    return [ITEM_POOL[h % ITEM_POOL.length], ITEM_POOL[(h+3) % ITEM_POOL.length], ITEM_POOL[(h+6) % ITEM_POOL.length]];
+  }
+
+  function mockPowerSpike(champ){
+    const h = hash(champ.id) % 3;
+    return ["fraco no early, jogue passivo até o nível 6","forte desde o início, procure abrir espaço cedo","depende de itens, poder de pico por volta do 2º item"][h];
+  }
+
+  function generateReport(){
+    document.getElementById("draftView").style.display = "none";
+    const reportView = document.getElementById("reportView");
+    reportView.style.display = "block";
+    const body = document.getElementById("reportBody");
+    body.innerHTML = '<div class="loading">montando dossiê…</div>';
+
+    setTimeout(()=>{
+      body.innerHTML = "";
+
+      // ---- lane matchups ----
+      const laneCard = document.createElement("div");
+      laneCard.className = "card";
+      laneCard.innerHTML = `<h3>Matchups de rota <span class="tag mock">mock</span></h3>`;
+      for(let i=0;i<5;i++){
+        const b = state.blue[i], r = state.red[i];
+        const row = document.createElement("div");
+        row.className = "lane-row";
+        const wr = mockWinrate(b, r);
+        row.innerHTML = `
+          <div class="lane-role">${ROLES[i]}</div>
+          <div class="lane-match">
+            <img src="${iconUrl(b.id) || ''}" onerror="this.style.visibility='hidden'">
+            <span class="vs">vs</span>
+            <img src="${iconUrl(r.id) || ''}" onerror="this.style.visibility='hidden'">
+          </div>
+          <div class="lane-info">
+            <span class="wr">${wr}% win rate</span> para ${b.name} contra ${r.name}
+            <span class="sub">counters fortes: ${mockItems(r).slice(0,2).join(", ")} tende a ser respondido por builds de sustentação</span>
+          </div>`;
+        laneCard.appendChild(row);
+      }
+      laneCard.innerHTML += stamp("mock", "OP.GG · lol-champion-analysis (placeholder — conectar ao backend)");
+      body.appendChild(laneCard);
+
+      // ---- composition read (derived from Data Dragon tags) ----
+      const compCard = document.createElement("div");
+      compCard.className = "card";
+      const allyTags = state.blue.flatMap(c=>c.tags||[]);
+      const enemyTags = state.red.flatMap(c=>c.tags||[]);
+      const count = arr => tag => arr.filter(t=>t===tag).length;
+      const allyCount = count(allyTags), enemyCount = count(enemyTags);
+      const dmgProfile = allyCount("Mage") >= allyCount("Marksman")+allyCount("Assassin") ? "seu time é majoritariamente mágico — priorize Capa Nulificante / Manto de Bandido" : "seu time é majoritariamente físico — priorize Corrente de Randuin / Espinho de Aço";
+      const tankiness = allyCount("Tank") <= 1 ? "seu time tem pouco tanque — cuidado com investidas do inimigo, jogue com visão extra" : "seu time tem boa dianteira — pode iniciar lutas com confiança";
+      compCard.innerHTML = `<h3>Leitura de composição <span class="tag real">derivado do Data Dragon</span></h3>
+        <p style="margin:0 0 8px;">${dmgProfile}.</p>
+        <p style="margin:0;">${tankiness}.</p>
+        ${stamp("real", "Data Dragon · tags de campeão, patch " + (version||"—"))}`;
+      body.appendChild(compCard);
+
+      // ---- priority items for "you" ----
+      const you = state.blue[state.youIndex];
+      const oppo = state.red[state.youIndex];
+      const itemCard = document.createElement("div");
+      itemCard.className = "card";
+      itemCard.innerHTML = `<h3>Itens prioritários — ${you.name} <span class="tag mock">mock</span></h3>
+        <div class="item-list">${mockItems(oppo).map(it=>`<span class="item-pill">${it}</span>`).join("")}</div>
+        ${stamp("mock", "OP.GG · builds do meta atual (placeholder — conectar ao backend)")}`;
+      body.appendChild(itemCard);
+
+      // ---- teamfight & power spike ----
+      const tfCard = document.createElement("div");
+      tfCard.className = "card";
+      tfCard.innerHTML = `<h3>Foco de teamfight & power spikes <span class="tag mock">mock</span></h3>
+        <p style="margin:0 0 8px;">Como ${you.name}: ${mockPowerSpike(you)}.</p>
+        <p style="margin:0;">Prioridade de alvo em luta: focar quem estiver mais próximo de ${enemyCount("Mage")>enemyCount("Marksman") ? "seus magos" : "seu atirador"} inimigo assim que possível.</p>
+        ${stamp("mock", "OP.GG · lol-champion-positions-data (placeholder — conectar ao backend)")}`;
+      body.appendChild(tfCard);
+
+    }, 450);
+  }
+
+  function stamp(kind, label){
+    return `<div class="stamp ${kind}"><span class="box"></span>${label}</div>`;
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
