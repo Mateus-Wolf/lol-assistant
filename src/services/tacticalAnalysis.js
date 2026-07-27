@@ -123,64 +123,82 @@ export function analyzeMatchup(ally, enemy) {
   if (allyPhase === 'early' && enemyPhase === 'late') {
     allyAdvantage = 'advantage';
     description = `${ally.name} tem pico no early — pressione agora antes que ${enemy.name} escale.`;
-    tips.push(`${enemy.name} fica mais forte com o tempo. Force confrontos antes do 2º-3º item inimigo.`);
+    tips.push(`Não deixe ${enemy.name} chegar ao 2º-3º item. Force trocas e crie vantagem de ouro cedo.`);
+    tips.push(`Controle a wave: freeze perto da sua torre quando inimigo recuar para negar farm e escala.`);
   } else if (allyPhase === 'late' && enemyPhase === 'early') {
     allyAdvantage = 'disadvantage';
     description = `${enemy.name} é forte agora — ${ally.name} escala melhor no late game.`;
-    tips.push(`Farm passivo e evite trocas desnecessárias. Você vence depois do 2º-3º item.`);
-    tips.push(`Peça ganks ao jungler para equilibrar a pressão inimiga.`);
+    tips.push(`Farm passivo e evite trocas desnecessárias. Com 2-3 itens você inverte o matchup.`);
+    tips.push(`Peça ganks ao jungler nos momentos em que ${enemy.name} for overextender na wave.`);
   } else if (allyPhase === 'early' && enemyPhase === 'early') {
     description = `Ambos são fortes no early — o primeiro erro decide a rota.`;
-    tips.push(`Wave management é crucial. Não tome trocas desfavoráveis cedo.`);
+    tips.push(`Wave management é crucial. Jogue com a wave a seu favor antes de engajar.`);
+    tips.push(`Respeite os CDs chave do inimigo — o momento logo após ele errar uma habilidade é a janela de troca.`);
   } else if (allyPhase === 'late' && enemyPhase === 'late') {
-    description = `Matchup de scaling — a partida se decide no teamfight do late.`;
-    tips.push(`Farm eficientemente e não arrisque antes dos itens. A composição decide.`);
+    description = `Matchup de scaling — ambos precisam de itens para explodir. Farm é prioridade máxima.`;
+    tips.push(`Não arrisque mortes gratuitas. Cada morte nega itens críticos e atrasa seu pico de poder.`);
   }
 
   // ── Vantagem de range ───────────────────────────────────────────────────
   if (allyRange === 'ranged' && enemyRange === 'melee') {
     if (allyAdvantage !== 'advantage') allyAdvantage = 'advantage';
-    if (!description) description = `${ally.name} tem vantagem de alcance sobre ${enemy.name}.`;
-    tips.push(`Use seu alcance para poke seguro. Fique fora do range de gap-closer do inimigo.`);
+    if (!description) description = `${ally.name} tem vantagem de alcance — poke seguro e niegue o farm de ${enemy.name}.`;
+    tips.push(`Use alcance para harass toda vez que ${enemy.name} se aproximar de um minion. Ele perde HP ou perde farm.`);
+    tips.push(`Posicione-se no lado oposto ao gap-closer do inimigo. Se ele errar o dash, é sua janela de troca.`);
   } else if (allyRange === 'melee' && enemyRange === 'ranged') {
     if (allyAdvantage !== 'disadvantage') allyAdvantage = 'disadvantage';
-    if (!description) description = `${enemy.name} tem vantagem de alcance — farm seguro e espere ganks.`;
-    tips.push(`Espere jungle para criar pressão. Aproveite arbustos para reduzir o alcance do inimigo.`);
-    tips.push(`Use minions como escudo para chegar mais perto durante as trocas.`);
+    if (!description) description = `${enemy.name} tem vantagem de alcance — gerencie a wave e espere oportunidades.`;
+    tips.push(`Use os minions como escudo contra skillshots. Avance pelo lado oposto ao range dele.`);
+    tips.push(`Arbustos anulam parte da vantagem de alcance — controle o warding e jogue pelos bushes.`);
   }
 
   // ── Sustain vs burst ─────────────────────────────────────────────────────
   if (allyArch.includes('sustain') && enemyArch.includes('burst')) {
-    tips.push(`${ally.name} tem mais sustain — aguente o burst inicial e retrade quando a cura entrar.`);
+    tips.push(`Seu sustain supera o burst — aguente o combo inicial, cura e retrade quando o inimigo ficar em cooldown.`);
   } else if (allyArch.includes('burst') && enemyArch.includes('sustain')) {
-    tips.push(`${enemy.name} tem sustain alto. Force trocas curtas e nunca trocas longas.`);
-    tips.push(`Itens de healing reduction (Chamas da Espada, Perfurador) são essenciais neste matchup.`);
+    tips.push(`${enemy.name} tem sustain alto — force trocas curtas e explosivas, nunca trocas de DPS prolongadas.`);
+    tips.push(`Compre healing reduction cedo (Chamas da Espada / Perfurador do Morticínio) para cortar a cura inimiga.`);
   }
 
   // ── Poke vs all-in ────────────────────────────────────────────────────────
   if (enemyArch.includes('poke') && !allyArch.includes('poke')) {
-    if (!description) description = `${enemy.name} é uma ameaça de poke — cuide da sua HP.`;
-    tips.push(`Posição é crucial. Fique atrás das tropas e minimize o poke.`);
-    tips.push(`Compre poções extras e considere itens de cura se o poke for muito agressivo.`);
+    if (!description) description = `${enemy.name} vai desgastar sua HP de longe — posicionamento é tudo aqui.`;
+    tips.push(`Fique atrás dos minions para bloquear skillshots de poke. Não avance sem proteção de minions.`);
+    tips.push(`Leve poções extras ou Second Wind como runa. No longo prazo, ganks resolvem mais que tentar duelar.`);
   }
 
-  // ── Dica do perfil do inimigo ────────────────────────────────────────────
-  if (enemyProfile?.description && tips.length < 2) {
-    tips.push(`Sobre ${enemy.name}: ${enemyProfile.description.split('.')[0]}.`);
+  // ── Assassino vs imóvel ───────────────────────────────────────────────────
+  if (enemyArch.includes('burst') && allyArch.includes('hypercarry')) {
+    tips.push(`${enemy.name} vai caçar você. Jogue perto da frontline aliada e nunca fique sozinho no mapa.`);
   }
 
-  // ── Dica do spike do inimigo ────────────────────────────────────────────
+  // ── Dive vs squishy ───────────────────────────────────────────────────────
+  if (enemyArch.includes('all-in') && !allyArch.includes('all-in') && !allyArch.includes('sustain')) {
+    tips.push(`${enemy.name} joga para o all-in — respeite os sinais de engajamento e posicione-se com saída de fuga.`);
+  }
+
+  // ── Split push inimigo ────────────────────────────────────────────────────
+  if (enemyArch.includes('split') && !allyArch.includes('split')) {
+    tips.push(`${enemy.name} tende a splitpush — comunique a posição dele para o time e reúna para objetivos quando ele pressionar.`);
+  }
+
+  // ── Descrição da dica do inimigo (sempre útil) ───────────────────────────
+  if (enemyProfile?.description) {
+    const firstSentence = enemyProfile.description.split('.')[0];
+    tips.push(`Dica sobre ${enemy.name}: ${firstSentence}.`);
+  }
+
+  // ── Power spike do inimigo ────────────────────────────────────────────────
   if (enemyProfile?.spike) {
-    tips.push(`Pico de poder de ${enemy.name}: ${enemyProfile.spike} — seja mais cauteloso a partir daí.`);
+    tips.push(`Pico de poder de ${enemy.name}: ${enemyProfile.spike}. Seja mais cauteloso a partir desse momento.`);
   }
 
-  // Fallback
+  // Fallback de description
   if (!description) {
-    description = `${ally.name} vs ${enemy.name} — matchup equilibrado`;
-    tips.push(`Fique atento ao power spike de ${enemy.name}: ${enemyProfile?.spike || '2º item'}.`);
+    description = `${ally.name} vs ${enemy.name} — matchup equilibrado. Quem errar primeiro perde a rota.`;
   }
 
-  return { allyAdvantage, description, tips: tips.slice(0, 3) };
+  return { allyAdvantage, description, tips: tips.slice(0, 4) };
 }
 
 // ─── Power Spikes por campeão ─────────────────────────────────────────────────

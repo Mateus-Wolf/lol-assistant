@@ -268,10 +268,10 @@ export function TacticalReport({
                           </span>
                           {ally && enemy && <MatchupBadge advantage={analysis.allyAdvantage} />}
                         </div>
-                        <p className="font-mono-code text-[10px] text-[#a09b8c] leading-relaxed mb-1">{analysis.description}</p>
+                        <p className="font-mono-code text-xs text-[#a09b8c] leading-relaxed mb-1.5">{analysis.description}</p>
                         {analysis.tips.map((tip, ti) => (
-                          <p key={ti} className="font-mono-code text-[10px] text-[#c8aa6e]/70 leading-relaxed">
-                            <ChevronRight size={9} className="inline mr-0.5" />{tip}
+                          <p key={ti} className="font-mono-code text-[11px] text-[#c8aa6e]/80 leading-relaxed mt-1">
+                            <ChevronRight size={10} className="inline mr-0.5" />{tip}
                           </p>
                         ))}
                       </div>
