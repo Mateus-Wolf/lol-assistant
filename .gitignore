@@ -1,0 +1,32 @@
+# Dependências
+node_modules/
+
+# Build de produção (o GitHub Actions gera isso na nuvem)
+dist/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Cache local
+.cache/
+.vite/
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
