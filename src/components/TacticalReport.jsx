@@ -440,7 +440,8 @@ export function TacticalReport({
         {/* ── COLUNA DA DIREITA: DADOS TÁTICOS E BUILDS ──────────────────────────── */}
         <div className="lg:col-span-5 xl:col-span-5 space-y-5">
 
-          {/* ── Perfil de Dano ──────────────────────────────────────────────────── */}
+          {/* ── Perfil de Dano — oculto no modo de análise de rota ──────────── */}
+          {assistantMode !== 'lane' && (
           <div className="hextech-panel rounded-md p-5">
             <h3 className="font-rajdhani font-bold text-xl uppercase tracking-wider text-[#f0e6d2] mb-4 flex items-center gap-3">
               Perfil de Dano <SourceBadge source="Data Dragon" />
@@ -469,6 +470,7 @@ export function TacticalReport({
               </div>
             </div>
           </div>
+          )}
 
           {/* ── Power Spikes ─────────────────────────────────────────────────────── */}
           <div className="hextech-panel rounded-md p-5">

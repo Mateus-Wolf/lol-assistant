@@ -6,17 +6,31 @@ import { getChampionProfile, detectSynergies, getPowerPhaseLabel } from '../cons
 import { getChampionBuild, resolveItems, resolveItem } from '../constants/championBuilds';
 
 // ─── Tipo de dano por tags DDragon ────────────────────────────────────────────
+// Retorna um de 5 tipos: 'ap' | 'ad' | 'mixed' | 'tank' | 'support'
+// Ordem de prioridade:
+//   1. mixed  → Mago + Guerreiro/Assassino (dano real híbrido)
+//   2. ap     → Mago puro ou Suporte com Mago
+//   3. support→ Suporte puro (sem Mago, sem Atirador, sem Guerreiro)
+//   4. tank   → Tanque puro (sem Mago, sem Guerreiro)
+//   5. ad     → Atirador, Guerreiro, Assassino e demais
 
 function getDamageType(tags = []) {
-  const hasMage      = tags.includes('Mage');
-  const hasMarksman  = tags.includes('Marksman');
-  const hasFighter   = tags.includes('Fighter');
-  const hasTank      = tags.includes('Tank');
-  const hasAssassin  = tags.includes('Assassin');
-  const hasSupport   = tags.includes('Support');
+  const hasMage     = tags.includes('Mage');
+  const hasMarksman = tags.includes('Marksman');
+  const hasFighter  = tags.includes('Fighter');
+  const hasTank     = tags.includes('Tank');
+  const hasAssassin = tags.includes('Assassin');
+  const hasSupport  = tags.includes('Support');
 
+  // Híbrido AP + físico (ex: Akali, Gwen, Mordekaiser)
   if (hasMage && (hasFighter || hasAssassin)) return 'mixed';
-  if (hasMage || (hasSupport && !hasMarksman && !hasFighter)) return 'ap';
+  // Mago puro ou Suporte que também é Mago (ex: Zyra, Morgana, Lux sup)
+  if (hasMage) return 'ap';
+  // Suporte puro sem dano físico relevante (ex: Thresh, Leona, Nautilus, Soraka)
+  if (hasSupport && !hasMarksman && !hasFighter && !hasAssassin) return 'support';
+  // Tanque puro sem origem de dano físico (ex: Malphite, Amumu, Shen pure-tank)
+  if (hasTank && !hasFighter && !hasMarksman && !hasAssassin) return 'tank';
+  // Demais: Atirador, Guerreiro, Assassino
   return 'ad';
 }
 
@@ -37,21 +51,29 @@ export function analyzeDamageProfile(champs) {
   let ad = 0, ap = 0, mixed = 0;
   for (const c of valid) {
     const t = getDamageType(c.tags || []);
-    if (t === 'ad') ad++;
+    // 'tank' e 'support' são neutros no perfil de dano — não inflam AD%
+    if (t === 'ad')     ad++;
     else if (t === 'ap') ap++;
-    else mixed++;
+    else if (t === 'mixed') mixed++;
+    // 'tank' e 'support': não contabilizados (não distorcem o perfil)
   }
 
   const total = valid.length;
-  const adPct   = (ad + mixed * 0.5) / total;
-  const apPct   = (ap + mixed * 0.5) / total;
+  // Usar apenas os que realmente causam dano como base para os percentuais
+  const dmgTotal = ad + ap + mixed;
+  if (dmgTotal === 0) {
+    return { ad:0, ap:0, mixed:0, total, dominance:'balanced', adPercent:0, apPercent:0, mixedPercent:0 };
+  }
+
+  const adPct = (ad + mixed * 0.5) / dmgTotal;
+  const apPct = (ap + mixed * 0.5) / dmgTotal;
   const dominance = adPct >= 0.6 ? 'ad' : apPct >= 0.6 ? 'ap' : 'balanced';
 
   return {
     ad, ap, mixed, total, dominance,
-    adPercent:    Math.round((ad    / total) * 100),
-    apPercent:    Math.round((ap    / total) * 100),
-    mixedPercent: Math.round((mixed / total) * 100),
+    adPercent:    Math.round((ad    / dmgTotal) * 100),
+    apPercent:    Math.round((ap    / dmgTotal) * 100),
+    mixedPercent: Math.round((mixed / dmgTotal) * 100),
   };
 }
 
@@ -228,23 +250,45 @@ export function getChampionItemRecommendations(you, youIndex, enemyDamage, enemy
 
   // ── Fallback por tag (campeão não cadastrado) ────────────────────────
   const damageType = getDamageType(you.tags || []);
-  const coreTags   = damageType === 'ap' ? ['SpellDamage'] : ['Damage', 'CriticalStrike'];
-  const defTags    = enemyDamage.dominance === 'ap' ? ['SpellBlock'] : ['Armor'];
 
-  const findByTag = (tags, limit) => Object.values(allItems)
-    .filter(item =>
-      item.tags.some(t => tags.includes(t)) &&
-      (item.gold?.total || 0) >= 1500 &&
-      !(item.tags || []).includes('Jungle') &&
-      !(item.tags || []).includes('Trinket')
-    )
-    .sort((a, b) => (b.gold?.total || 0) - (a.gold?.total || 0))
-    .slice(0, limit);
+  // Tags de itens a buscar por tipo de dano
+  const CORE_TAGS_BY_TYPE = {
+    ap:      ['SpellDamage'],
+    mixed:   ['SpellDamage'],
+    ad:      ['Damage', 'CriticalStrike'],
+    tank:    ['Health', 'Armor', 'SpellBlock'],
+    support: ['Health', 'ManaRegen', 'SpellDamage'],
+  };
+
+  // Custo mínimo por tipo (tanks e supports têm itens mais baratos)
+  const MIN_GOLD_BY_TYPE = {
+    ap: 2000, mixed: 2000, ad: 2000, tank: 1200, support: 1000,
+  };
+
+  const coreTags = CORE_TAGS_BY_TYPE[damageType] || ['Damage'];
+  const minGold  = MIN_GOLD_BY_TYPE[damageType] || 1500;
+
+  // Defesa situacional baseada no dano inimigo
+  const defTags = enemyDamage.dominance === 'ap'
+    ? ['SpellBlock', 'Health']
+    : ['Armor', 'Health'];
+
+  const EXCLUDED_TAGS = new Set(['Jungle', 'Trinket', 'Consumable', 'Lane']);
+
+  const findByTag = (tags, limit, minCost = minGold) =>
+    Object.values(allItems)
+      .filter(item =>
+        item.tags.some(t => tags.includes(t)) &&
+        (item.gold?.total || 0) >= minCost &&
+        !item.tags.some(t => EXCLUDED_TAGS.has(t))
+      )
+      .sort((a, b) => (b.gold?.total || 0) - (a.gold?.total || 0))
+      .slice(0, limit);
 
   return {
-    core:            findByTag(coreTags, 3),
-    boots:           findByTag(['Boots'], 1)[0] || null,
-    situational:     findByTag(defTags, 2),
+    core:             findByTag(coreTags, 3),
+    boots:            findByTag(['Boots'], 1, 300)[0] || null,
+    situational:      findByTag(defTags, 2, 1000),
     hasSpecificBuild: false,
   };
 }
